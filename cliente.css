@@ -1,0 +1,43 @@
+@media screen and (max-width: 600px) {
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	body {
+		font-family: playfair;
+		background-color: #ffffff;
+		line-height: 1.6;
+	}
+
+	.title {
+		text-align: center;
+		font-size: 1.3em;
+		margin-left: 1em;
+	}
+
+	.logo {
+		width: 100px;
+		height: auto;
+		margin: 0.6em;
+	}
+
+	.header {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.ticket-form {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.new-ticket-form {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+}
