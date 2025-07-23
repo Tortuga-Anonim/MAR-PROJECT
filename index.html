@@ -94,5 +94,15 @@
 		</div>
 
 		<script src="js/script.js"></script>
+		<!-- Añadir antes del cierre de </body> -->
+		<script>
+			// Inicialización segura
+			document.addEventListener("DOMContentLoaded", () => {
+				if (typeof initWebSocket === "function") {
+					initWebSocket();
+				}
+				showRole();
+			});
+		</script>
 	</body>
 </html>
