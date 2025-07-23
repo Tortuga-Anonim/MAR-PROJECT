@@ -1,0 +1,273 @@
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	background: #f5f5f5;
+}
+body {
+	font-family: "Segoe UI", Arial, sans-serif;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+}
+.main-box,
+.login-box,
+.role-box {
+	background: #fff;
+	border-radius: 18px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+	padding: 18px 4vw 16px 4vw;
+	width: 100vw;
+	max-width: 430px;
+	margin: 0 auto;
+	margin-top: 16px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 18px;
+}
+.logo-lagunita {
+	width: 110px;
+	height: auto;
+	margin-bottom: 10px;
+	margin-top: 8px;
+	display: block;
+}
+h2 {
+	color: #198754;
+	margin-bottom: 8px;
+	font-size: 1.5rem;
+}
+.instructions {
+	color: #555;
+	font-size: 1rem;
+	margin-bottom: 10px;
+	text-align: center;
+}
+.container {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 14px;
+	width: 100%;
+}
+.input-box,
+.login-form {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	width: 100%;
+}
+.login-form {
+	flex-direction: column;
+	gap: 12px;
+}
+#numberInput,
+.login-form input {
+	flex: 1;
+	padding: 12px;
+	font-size: 1.1rem;
+	border-radius: 8px;
+	border: 1px solid #198754;
+	outline: none;
+	transition: border 0.2s;
+	background: #fff;
+	color: #222;
+}
+#numberInput:focus,
+.login-form input:focus {
+	border: 1.5px solid #198754;
+}
+button {
+	padding: 12px 18px;
+	font-size: 1.1rem;
+	background: #198754;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+button:active {
+	background: #145c32;
+}
+#queueBox {
+	min-width: 0;
+	max-width: 100%;
+	min-height: 32px;
+	border: 2px solid #198754;
+	border-radius: 10px;
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 5px;
+	background: #fff;
+	box-shadow: 0 2px 10px rgba(25, 135, 84, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+	width: 100%;
+	overflow-x: hidden;
+}
+.queue-item {
+	background: #f8f9fa;
+	border-radius: 8px;
+	padding: 4px 3px;
+	font-size: 0.93rem;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	box-shadow: 0 1px 2px rgba(25, 135, 84, 0.08);
+	border-left: 3px solid #198754;
+	justify-content: space-between;
+	transition: background 0.2s, border-left 0.2s;
+	min-height: 28px;
+	user-select: none;
+	max-width: 100%;
+	overflow-x: auto;
+}
+.queue-info {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0;
+	min-width: 0;
+	max-width: 60vw;
+	overflow-x: hidden;
+}
+.timestamp {
+	color: #198754;
+	font-size: 0.8rem;
+	font-style: italic;
+}
+.status-label {
+	font-size: 0.75rem;
+	font-weight: bold;
+	padding: 2px 5px;
+	border-radius: 8px;
+	background: #ffe066;
+	color: #856404;
+	margin-left: 3px;
+	min-width: 40px;
+	text-align: center;
+	white-space: nowrap;
+}
+.queue-item.entregado .status-label {
+	background: #d4edda;
+	color: #155724;
+}
+.queue-item.noentregado .status-label {
+	background: #f8d7da;
+	color: #721c24;
+}
+.queue-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-left: 7px;
+}
+.queue-actions button {
+	padding: 4px 8px;
+	font-size: 0.85rem;
+	border-radius: 8px;
+	min-width: 60px;
+}
+.queue-actions .entregar-btn {
+	background: #198754;
+}
+.queue-actions .noentregar-btn {
+	background: #dc3545;
+}
+.queue-actions .entregar-btn:active {
+	background: #145c32;
+}
+.queue-actions .noentregar-btn:active {
+	background: #721c24;
+}
+.logout-btn {
+	margin-top: 10px;
+	background: #888;
+	font-size: 1rem;
+	padding: 10px 16px;
+}
+.logout-btn:active {
+	background: #444;
+}
+.role-btns {
+	display: flex;
+	gap: 18px;
+	width: 100%;
+	justify-content: center;
+	margin-bottom: 10px;
+}
+.role-btns button {
+	flex: 1;
+	font-size: 1.1rem;
+}
+.error-msg {
+	color: #ef4444;
+	font-size: 1rem;
+	margin-bottom: 8px;
+}
+.notify {
+	background: #dc3545;
+	color: #fff;
+	padding: 10px 16px;
+	border-radius: 8px;
+	margin: 10px 0;
+	text-align: center;
+	font-size: 1rem;
+	display: none;
+}
+.remove-btn {
+	background: #dc3545;
+	color: #fff;
+	border: none;
+	border-radius: 8px;
+	padding: 12px 18px;
+	font-size: 1.1rem;
+	margin-top: 8px;
+	width: 100%;
+	cursor: pointer;
+	transition: background 0.2s;
+	display: none;
+}
+.remove-btn:active {
+	background: #721c24;
+}
+@media (max-width: 500px) {
+	.main-box,
+	.login-box,
+	.role-box {
+		padding: 10px 2vw 10px 2vw;
+		min-width: unset;
+		max-width: 100vw;
+	}
+	.logo-lagunita {
+		width: 80px;
+	}
+	h2 {
+		font-size: 1.15rem;
+	}
+	.queue-item {
+		font-size: 0.89rem;
+		padding: 3px 2px;
+		min-height: 22px;
+		gap: 3px;
+	}
+	.status-label {
+		font-size: 0.68rem;
+		padding: 1px 3px;
+		min-width: 30px;
+	}
+	.queue-actions button {
+		font-size: 0.75rem;
+		min-width: 45px;
+		padding: 2px 4px;
+	}
+	.remove-btn {
+		font-size: 1rem;
+		padding: 8px 10px;
+	}
+}
