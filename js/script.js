@@ -1,12 +1,10 @@
-// --- Usuarios permitidos (puedes agregar más) ---
+// Usuarios permitidos (puedes agregar más)
 const USERS = [
 	{ username: "admin", password: "1234" },
 	{ username: "valet", password: "valet2024" },
 ];
-
 let currentRole = null; // 'cliente' o 'parkero'
 let isParkeroLogged = false;
-
 function showRole() {
 	document.getElementById("roleBox").style.display = "flex";
 	document.getElementById("loginBox").style.display = "none";
