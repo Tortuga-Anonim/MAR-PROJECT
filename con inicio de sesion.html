@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Valet Parking - Turnos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #111;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .main-box, .login-box, .role-box {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+            padding: 18px 4vw 16px 4vw;
+            width: 100vw;
+            max-width: 430px;
+            margin: 0 auto;
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+        .logo-lagunita {
+            width: 110px;
+            height: auto;
+            margin-bottom: 10px;
+            margin-top: 8px;
+            display: block;
+        }
+        @media (max-width: 500px) {
+            .main-box, .login-box, .role-box {
+                padding: 10px 2vw 10px 2vw;
+                min-width: unset;
+                max-width: 100vw;
+            }
+            .logo-lagunita {
+                width: 80px;
+            }
+            h2 {
+                font-size: 1.15rem;
+            }
+            .queue-item {
+                font-size: 0.89rem;
+                padding: 3px 2px;
+                min-height: 22px;
+                gap: 3px;
+            }
+            .status-label {
+                font-size: 0.68rem;
+                padding: 1px 3px;
+                min-width: 30px;
+            }
+            .queue-actions button {
+                font-size: 0.75rem;
+                min-width: 45px;
+                padding: 2px 4px;
+            }
+            .remove-btn {
+                font-size: 1rem;
+                padding: 8px 10px;
+            }
+        }
+        h2 {
+            color: #111;
+            margin-bottom: 8px;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .instructions {
+            color: #222;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 14px;
+            width: 100%;
+        }
+        .input-box, .login-form {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            width: 100%;
+        }
+        .login-form {
+            flex-direction: column;
+            gap: 12px;
+        }
+        #numberInput, .login-form input {
+            flex: 1;
+            padding: 12px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 2px solid #111;
+            outline: none;
+            transition: border 0.2s;
+            background: #fff;
+            color: #111;
+            font-weight: 600;
+        }
+        #numberInput:focus, .login-form input:focus {
+            border: 2px solid #111;
+        }
+        button {
+            padding: 12px 18px;
+            font-size: 1.1rem;
+            background: #111;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        button:active {
+            background: #222;
+            color: #fff;
+        }
+        #queueBox {
+            min-width: 0;
+            max-width: 100%;
+            min-height: 32px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 5px;
+            background: #f7f7f7;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .queue-item {
+            background: #ededed;
+            border-radius: 8px;
+            padding: 4px 3px;
+            font-size: 0.93rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            border-left: 4px solid #111;
+            justify-content: space-between;
+            transition: background 0.2s, border-left 0.2s;
+            min-height: 28px;
+            user-select: none;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .queue-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0;
+            min-width: 0;
+            max-width: 60vw;
+            overflow-x: hidden;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 0.80rem;
+            font-style: italic;
+        }
+        .status-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 8px;
+            margin-left: 3px;
+            min-width: 60px;
+            text-align: center;
+            white-space: nowrap;
+            border: 1.5px solid #111;
+            background: #fff;
+            color: #111;
+            letter-spacing: 1px;
+        }
+        .queue-item.entregado .status-label {
+            background: #27ae60;
+            color: #fff;
+            border: 1.5px solid #27ae60;
+        }
+        .queue-item.noentregado .status-label {
+            background: #e74c3c;
+            color: #fff;
+            border: 1.5px solid #e74c3c;
+        }
+        .queue-item:not(.entregado):not(.noentregado) .status-label {
+            background: #ffe066;
+            color: #856404;
+            border: 1.5px solid #ffe066;
+        }
+        .queue-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-left: 7px;
+        }
+        .queue-actions button {
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            min-width: 60px;
+            border: none;
+        }
+        .queue-actions .entregar-btn {
+            background: #27ae60;
+            color: #fff;
+        }
+        .queue-actions .noentregar-btn {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .queue-actions .entregar-btn:active {
+            background: #145c32;
+            color: #fff;
+        }
+        .queue-actions .noentregar-btn:active {
+            background: #721c24;
+            color: #fff;
+        }
+        .logout-btn {
+            margin-top: 10px;
+            background: #111;
+            color: #fff;
+            font-size: 1rem;
+            padding: 10px 16px;
+        }
+        .logout-btn:active {
+            background: #222;
+            color: #fff;
+        }
+        .role-btns {
+            display: flex;
+            gap: 18px;
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .role-btns button {
+            flex: 1;
+            font-size: 1.1rem;
+        }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .notify {
+            background: #e74c3c;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 1rem;
+            display: none;
+        }
+        .remove-btn {
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 1.1rem;
+            margin-top: 8px;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: none;
+        }
+        .remove-btn:active {
+            background: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="role-box" id="roleBox">
+        <img src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg" alt="Club de la Lagunita" class="logo-lagunita">
+        <h2>¿Quién eres?</h2>
+        <div class="role-btns">
+            <button onclick="selectRole('cliente')">Cliente</button>
+            <button onclick="selectRole('parkero')">Parkero</button>
+        </div>
+    </div>
+    <div class="login-box" id="loginBox" style="display: none;">
+        <img src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg" alt="Club de la Lagunita" class="logo-lagunita">
+        <h2>Iniciar sesión Parkero</h2>
+        <form class="login-form" id="loginForm" autocomplete="off">
+            <input type="text" id="username" placeholder="Usuario" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Entrar</button>
+            <div class="error-msg" id="loginError" style="display:none;"></div>
+        </form>
+        <button class="logout-btn" onclick="backToRole()">Volver</button>
+    </div>
+    <div class="main-box" id="mainBox" style="display: none;">
+        <img src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg" alt="Club de la Lagunita" class="logo-lagunita">
+        <h2>Valet Parking</h2>
+        <div class="instructions" id="instructions"></div>
+        <div class="notify" id="notifyBox"></div>
+        <div class="container">
+            <div class="input-box" id="inputBox">
+                <input type="number" id="numberInput" placeholder="Número de ticket" aria-label="Número de ticket">
+                <button id="addBtn" onclick="addToQueue()" aria-label="Agregar ticket">Agregar</button>
+            </div>
+            <button id="removeBtn" class="remove-btn" onclick="removeMyTicket()">Cancelar retiro</button>
+            <div id="queueBox" aria-live="polite"></div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" onclick="logout()" style="display:none;">Cerrar sesión</button>
+        <button class="logout-btn" onclick="backToRole()" style="margin-top:10px;">Volver</button>
+    </div>
+    <script>
+        // Usuarios permitidos (puedes agregar más)
+        const USERS = [
+            { username: "admin", password: "1234" },
+            { username: "valet", password: "valet2024" }
+        ];
+
+        let currentRole = null; // 'cliente' o 'parkero'
+        let isParkeroLogged = false;
+
+        function showRole() {
+            document.getElementById('roleBox').style.display = 'flex';
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('mainBox').style.display = 'none';
+            document.getElementById('notifyBox').style.display = 'none';
+            currentRole = null;
+            isParkeroLogged = false;
+        }
+        function showLogin() {
+            document.getElementById('roleBox').style.display = 'none';
+            document.getElementById('loginBox').style.display = 'flex';
+            document.getElementById('mainBox').style.display = 'none';
+            document.getElementById('loginError').style.display = 'none';
+        }
+        function showApp() {
+            document.getElementById('roleBox').style.display = 'none';
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('mainBox').style.display = 'flex';
+            document.getElementById('logoutBtn').style.display = (currentRole === 'parkero') ? 'inline-block' : 'none';
+            updateClienteUI();
+            renderQueue();
+        }
+        function backToRole() {
+            showRole();
+        }
+        function logout() {
+            isParkeroLogged = false;
+            showRole();
+        }
+        function selectRole(role) {
+            currentRole = role;
+            if (role === 'cliente') {
+                showApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = function(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+            const found = USERS.find(u => u.username === user && u.password === pass);
+            if (found) {
+                isParkeroLogged = true;
+                showApp();
+            } else {
+                document.getElementById('loginError').textContent = 'Usuario o contraseña incorrectos';
+                document.getElementById('loginError').style.display = 'block';
+            }
+        };
+
+        function getQueue() {
+            return JSON.parse(localStorage.getItem('valet_queue') || '[]');
+        }
+        function setQueue(arr) {
+            localStorage.setItem('valet_queue', JSON.stringify(arr));
+        }
+
+        function registrarEvento(ticket, status) {
+            // Aquí deberías hacer un fetch POST a tu backend real
+            // fetch('/api/registro', {method:'POST', body: JSON.stringify({...})})
+            // Simulación:
+            console.log("Registro enviado al servidor:", {
+                ...ticket,
+                status: status,
+                fechaRegistro: new Date().toISOString()
+            });
+        }
+
+        function notifyCliente(msg) {
+            const box = document.getElementById('notifyBox');
+            box.textContent = msg;
+            box.style.display = 'block';
+            setTimeout(() => {
+                box.style.display = 'none';
+            }, 4000);
+        }
+
+        // --- Cliente: solo puede tener un ticket activo ---
+        function getMyTicket() {
+            return JSON.parse(localStorage.getItem('my_valet_ticket') || 'null');
+        }
+        function setMyTicket(ticket) {
+            if (ticket) {
+                localStorage.setItem('my_valet_ticket', JSON.stringify(ticket));
+            } else {
+                localStorage.removeItem('my_valet_ticket');
+            }
+        }
+
+        function updateClienteUI() {
+            const myTicket = getMyTicket();
+            const inputBox = document.getElementById('inputBox');
+            const removeBtn = document.getElementById('removeBtn');
+            const instructions = document.getElementById('instructions');
+            if (currentRole === 'cliente') {
+                if (myTicket) {
+                    inputBox.style.display = 'none';
+                    removeBtn.style.display = 'block';
+                    instructions.innerHTML = 'Ya tienes un ticket en cola.<br>Puedes cancelar el retiro si lo deseas.';
+                } else {
+                    inputBox.style.display = 'flex';
+                    removeBtn.style.display = 'none';
+                    instructions.innerHTML = 'Introduce tu número de ticket para agregarlo a la fila.<br><b>Solo puedes ingresar un número a la vez.</b>';
+                }
+            } else {
+                inputBox.style.display = 'flex';
+                removeBtn.style.display = 'none';
+                instructions.innerHTML = 'Puedes marcar los tickets como <b>Entregado</b> o <b>No entregado</b> usando los botones. El ticket se eliminará automáticamente después de 5 segundos.<br>Solo los parkeros pueden cambiar el estado.';
+            }
+        }
+
+        function removeMyTicket() {
+            const myTicket = getMyTicket();
+            if (!myTicket) return;
+            let queue = getQueue();
+            queue = queue.filter(q =>
+                !(q.number === myTicket.number && q.timestamp === myTicket.timestamp)
+            );
+            setQueue(queue);
+            setMyTicket(null);
+            updateClienteUI();
+            renderQueue();
+        }
+
+        function renderQueue() {
+            const queueBox = document.getElementById('queueBox');
+            queueBox.innerHTML = '';
+            const queue = getQueue();
+            const myTicket = getMyTicket();
+            let ticketStillActive = false;
+            queue.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'queue-item' +
+                    (item.entregado ? ' entregado' : '') +
+                    (item.noentregado ? ' noentregado' : '');
+                div.tabIndex = 0;
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'queue-info';
+
+                const numberSpan = document.createElement('span');
+                numberSpan.textContent = item.number;
+
+                const timestamp = document.createElement('span');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = item.timestamp;
+
+                infoDiv.appendChild(numberSpan);
+                infoDiv.appendChild(timestamp);
+
+                div.appendChild(infoDiv);
+
+                // Estado
+                const status = document.createElement('span');
+                status.className = 'status-label';
+                if (item.entregado) {
+                    status.textContent = 'Entregado';
+                } else if (item.noentregado) {
+                    status.textContent = 'No entregado';
+                } else {
+                    status.textContent = 'Por entregar';
+                }
+                div.appendChild(status);
+
+                // Acciones solo para parkero
+                if (currentRole === 'parkero' && isParkeroLogged && !item.entregado && !item.noentregado) {
+                    const actions = document.createElement('div');
+                    actions.className = 'queue-actions';
+
+                    const btnEntregar = document.createElement('button');
+                    btnEntregar.className = 'entregar-btn';
+                    btnEntregar.textContent = 'Entregado';
+                    btnEntregar.onclick = function(e) {
+                        e.stopPropagation();
+                        queue[idx].entregado = true;
+                        setQueue(queue);
+                        renderQueue();
+                        registrarEvento(queue[idx], 'entregado');
+                        setTimeout(() => {
+                            const updatedQueue = getQueue();
+                            const i = updatedQueue.findIndex(q =>
+                                q.number === item.number &&
+                                q.timestamp === item.timestamp
+                            );
+                            if (i !== -1 && updatedQueue[i].entregado) {
+                                updatedQueue.splice(i, 1);
+                                setQueue(updatedQueue);
+                                renderQueue();
+                            }
+                        }, 5000);
+                    };
+                    actions.appendChild(btnEntregar);
+
+                    const btnNoEntregar = document.createElement('button');
+                    btnNoEntregar.className = 'noentregar-btn';
+                    btnNoEntregar.textContent = 'No entregado';
+                    btnNoEntregar.onclick = function(e) {
+                        e.stopPropagation();
+                        queue[idx].noentregado = true;
+                        setQueue(queue);
+                        renderQueue();
+                        registrarEvento(queue[idx], 'noentregado');
+                        setTimeout(() => {
+                            const updatedQueue = getQueue();
+                            const i = updatedQueue.findIndex(q =>
+                                q.number === item.number &&
+                                q.timestamp === item.timestamp
+                            );
+                            if (i !== -1 && updatedQueue[i].noentregado) {
+                                updatedQueue.splice(i, 1);
+                                setQueue(updatedQueue);
+                                renderQueue();
+                                notifyCliente("El tiempo de espera de tu vehículo ha expirado. Consulta con el personal.");
+                            }
+                        }, 5000);
+                    };
+                    actions.appendChild(btnNoEntregar);
+
+                    div.appendChild(actions);
+                }
+
+                // Si es cliente, verifica si su ticket sigue activo
+                if (currentRole === 'cliente' && myTicket &&
+                    item.number === myTicket.number && item.timestamp === myTicket.timestamp &&
+                    !item.entregado && !item.noentregado
+                ) {
+                    ticketStillActive = true;
+                }
+                // Si el ticket fue entregado o no entregado, lo elimina del localStorage y actualiza UI
+                if (currentRole === 'cliente' && myTicket &&
+                    item.number === myTicket.number && item.timestamp === myTicket.timestamp &&
+                    (item.entregado || item.noentregado)
+                ) {
+                    setMyTicket(null);
+                    setTimeout(updateClienteUI, 100);
+                }
+
+                queueBox.appendChild(div);
+            });
+            // Si ya no está en la cola, limpia el ticket del cliente y actualiza UI
+            if (currentRole === 'cliente' && myTicket && !ticketStillActive) {
+                setMyTicket(null);
+                setTimeout(updateClienteUI, 100);
+            }
+        }
+
+        function addToQueue() {
+            if (currentRole === 'cliente' && getMyTicket()) {
+                notifyCliente("Ya tienes un ticket en cola. Cancela el retiro si deseas ingresar otro.");
+                return;
+            }
+            const input = document.getElementById('numberInput');
+            const value = input.value.trim();
+            if (!value) return;
+            const queue = getQueue();
+            const now = new Date();
+            const ticket = {
+                number: value,
+                timestamp: now.toLocaleString(),
+                entregado: false,
+                noentregado: false
+            };
+            queue.push(ticket);
+            setQueue(queue);
+            if (currentRole === 'cliente') setMyTicket(ticket);
+            renderQueue();
+            updateClienteUI();
+            input.value = '';
+            input.focus();
+        }
+        document.getElementById('numberInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                addToQueue();
+            }
+        });
+
+        // --- Inicialización ---
+        showRole();
+    </script>
+</body>
+</html>
