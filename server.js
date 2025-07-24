@@ -39,6 +39,11 @@ wss.on("connection", (ws) => {
 					queue[ticketIndex][data.status] = true;
 					broadcastUpdate();
 
+					// Notificación inmediata para "noentregado"
+					if (data.status === "noentregado") {
+						notifyClient(data.ticket, "Comuníquese con el personal");
+					}
+
 					// Eliminar después de 5 segundos
 					setTimeout(() => {
 						const idx = queue.findIndex(
@@ -49,11 +54,6 @@ wss.on("connection", (ws) => {
 						if (idx !== -1 && queue[idx][data.status]) {
 							queue.splice(idx, 1);
 							broadcastUpdate();
-
-							// Notificar al cliente específico
-							if (data.status === "noentregado") {
-								notifyClient(data.ticket, "El tiempo de espera ha expirado");
-							}
 						}
 					}, 5000);
 				}

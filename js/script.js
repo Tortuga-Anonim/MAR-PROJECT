@@ -65,15 +65,17 @@ function handleWebSocketMessage(data) {
 			break;
 
 		case "NOTIFICATION":
-			const myTicket = getMyTicket();
+			notifyCliente(data.message);
+
+			// Limpiar el ticket del cliente si es relevante
 			if (
-				myTicket &&
-				data.ticket.number === myTicket.number &&
-				data.ticket.timestamp === myTicket.timestamp
+				data.message.includes("Comuníquese") ||
+				data.message.includes("tiempo de espera")
 			) {
-				notifyCliente(data.message);
-				if (data.status === "noentregado" || data.status === "entregado") {
+				const myTicket = getMyTicket();
+				if (myTicket) {
 					setMyTicket(null);
+					updateClienteUI();
 				}
 			}
 			break;
@@ -197,7 +199,10 @@ function updateClienteUI() {
 }
 
 function addToQueue() {
-	if (currentRole === "cliente" && getMyTicket()) return;
+	if (currentRole === "cliente" && getMyTicket()) {
+		notifyCliente("Ya tienes un ticket en cola");
+		return;
+	}
 
 	const value = elements.numberInput.value.trim();
 	if (!value) return;
