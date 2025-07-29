@@ -199,9 +199,10 @@ function addToQueue() {
         number: value,
         timestamp: new Date().toLocaleString(),
         entregado: false,
-        noentregado: false
+        noentregado: false,
     };
 
+    // Enviar al backend
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
             type: "ADD_TICKET",
@@ -209,15 +210,15 @@ function addToQueue() {
         }));
     }
 
+    // Guardar el ticket del cliente y mostrar el botón de cancelar
     if (currentRole === "cliente") {
-        setMyTicket(ticket);
-        updateClienteUI(); // ✅ Este es el cambio esencial para mostrar el botón
+        setMyTicket(ticket);         // Guardamos el ticket del cliente
+        updateClienteUI();           //  Esto fuerza que se actualice la interfaz y aparezca el botón
     }
 
     elements.numberInput.value = "";
     elements.numberInput.focus();
 }
-
 function removeMyTicket() {
     const myTicket = getMyTicket();
     if (!myTicket) return;
