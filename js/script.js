@@ -169,9 +169,12 @@ function updateClienteUI() {
     if (currentRole === "cliente") {
         if (myTicket) {
             elements.inputBox.style.display = "none";
-            elements.removeBtn.style.display = "block";
+            elements.removeBtn.style.display = "inline-block"; // Aseguramos que se vea como botón visible
             elements.instructions.innerHTML =
                 "Tu retiro está en espera. Puedes cancelar el retiro si lo deseas.";
+            
+            //Nos aseguramos de que el botón ejecute correctamente cancelarRetiro()
+            elements.removeBtn.onclick = cancelarRetiro;
         } else {
             elements.inputBox.style.display = "flex";
             elements.removeBtn.style.display = "none";
@@ -186,7 +189,9 @@ function updateClienteUI() {
     }
 }
 
+
 function addToQueue() {
+    // Evitar que el cliente agregue otro ticket si ya tiene uno
     if (currentRole === "cliente" && getMyTicket()) {
         notifyCliente("Ya tienes un ticket en cola");
         return;
@@ -202,7 +207,7 @@ function addToQueue() {
         noentregado: false,
     };
 
-    // Enviar al backend
+    // Enviar el ticket al servidor via WebSocket
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
             type: "ADD_TICKET",
@@ -210,14 +215,30 @@ function addToQueue() {
         }));
     }
 
-    // Guardar el ticket del cliente y mostrar el botón de cancelar
+    // Guardar el ticket localmente si es cliente
     if (currentRole === "cliente") {
-        setMyTicket(ticket);         // Guardamos el ticket del cliente
-        updateClienteUI();           //  Esto fuerza que se actualice la interfaz y aparezca el botón
+        setMyTicket(ticket);         // Guardamos el ticket en localStorage
+        updateClienteUI();           // Actualizamos la UI para mostrar el botón "Cancelar retiro"
     }
 
+    // Limpiar el campo y enfocarlo
     elements.numberInput.value = "";
     elements.numberInput.focus();
+}
+function cancelarRetiro() {
+    const myTicket = getMyTicket();
+    if (!myTicket) return;
+
+    // Enviar la solicitud al servidor para eliminar el ticket del cliente
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: "REMOVE_TICKET",
+            ticket: myTicket // Solo se elimina el ticket asociado al cliente actual
+        }));
+    }
+
+    clearMyTicket();     // Limpiamos el ticket del cliente en localStorage
+    updateClienteUI();   // Refrescamos la interfaz para ocultar el botón "Cancelar retiro"
 }
 function removeMyTicket() {
     const myTicket = getMyTicket();
