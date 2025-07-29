@@ -138,7 +138,7 @@ function selectRole(role) {
 
     if (role === "cliente") {
         showApp();
-        updateClienteUI(); // ✅ Refresca la interfaz del cliente y muestra el botón si tiene ticket
+        updateClienteUI(); //Refresca la interfaz del cliente y muestra el botón si tiene ticket
     } else {
         showLogin();
     }
