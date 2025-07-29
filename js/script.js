@@ -135,8 +135,10 @@ function logout() {
 
 function selectRole(role) {
     currentRole = role;
+
     if (role === "cliente") {
         showApp();
+        updateClienteUI(); // ✅ Refresca la interfaz del cliente y muestra el botón si tiene ticket
     } else {
         showLogin();
     }
