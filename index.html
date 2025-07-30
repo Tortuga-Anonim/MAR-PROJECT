@@ -7,90 +7,83 @@
 		<link rel="stylesheet" href="css/style.css" />
 	</head>
 	<body>
-		<!-- Pantalla de selección de rol -->
 		<div class="role-box" id="roleBox">
 			<img
 				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
-				alt="Logo Nike Valet Parking"
-				class="logo-dinamico"
+				alt="Club de la Lagunita"
+				class="logo-lagunita"
 			/>
 			<h2>¿Quién eres?</h2>
 			<div class="role-btns">
-				<button onclick="selectRole('cliente')" class="role-btn">
-					Cliente
-				</button>
-				<button onclick="selectRole('parkero')" class="role-btn">
-					Parkero
-				</button>
+				<button onclick="selectRole('cliente')">Cliente</button>
+				<button onclick="selectRole('parkero')">Parkero</button>
 			</div>
 		</div>
-
-		<!-- Pantalla de login para parkeros -->
-		<div class="login-box" id="loginBox">
+		<div class="login-box" id="loginBox" style="display: none">
 			<img
 				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
-				alt="Logo Nike Valet Parking"
-				class="logo-dinamico"
+				alt="Club de la Lagunita"
+				class="logo-lagunita"
 			/>
 			<h2>Iniciar sesión Parkero</h2>
-			<form id="loginForm" class="login-form" autocomplete="off">
-				<div class="form-group">
-					<input type="text" id="username" placeholder="Usuario" required />
-				</div>
-				<div class="form-group">
-					<input
-						type="password"
-						id="password"
-						placeholder="Contraseña"
-						required
-					/>
-				</div>
-				<button type="submit" class="submit-btn">Entrar</button>
-				<div class="error-msg" id="loginError"></div>
+			<form class="login-form" id="loginForm" autocomplete="off">
+				<input type="text" id="username" placeholder="Usuario" required />
+				<input
+					type="password"
+					id="password"
+					placeholder="Contraseña"
+					required
+				/>
+				<button type="submit">Entrar</button>
+				<div class="error-msg" id="loginError" style="display: none"></div>
 			</form>
-			<button onclick="backToRole()" class="back-btn">Volver</button>
+			<button class="logout-btn" onclick="backToRole()">Volver</button>
 		</div>
-
-		<!-- Pantalla principal de la aplicación -->
-		<div class="main-box" id="mainBox">
+		<div class="main-box" id="mainBox" style="display: none">
 			<img
 				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
-				alt="Logo Nike Valet Parking"
-				class="logo-dinamico"
+				alt="Club de la Lagunita"
+				class="logo-lagunita"
 			/>
 			<h2>Valet Parking</h2>
-
-			<div class="notification" id="notifyBox"></div>
-
 			<div class="instructions" id="instructions"></div>
-
-			<div class="ticket-controls">
+			<div class="notify" id="notifyBox"></div>
+			<div class="container">
 				<div class="input-box" id="inputBox">
 					<input
 						type="number"
 						id="numberInput"
 						placeholder="Número de ticket"
 						aria-label="Número de ticket"
-						min="1"
 					/>
-					<button id="addBtn" onclick="addToQueue()" class="action-btn">
+					<button
+						id="addBtn"
+						onclick="addToQueue()"
+						aria-label="Agregar ticket"
+					>
 						Agregar
 					</button>
 				</div>
-
-				<button id="removeBtn" onclick="removeMyTicket()" class="remove-btn">
+				<button id="removeBtn" class="remove-btn" onclick="removeMyTicket()">
 					Cancelar retiro
 				</button>
+				<div id="queueBox" aria-live="polite"></div>
 			</div>
-
-			<div id="queueBox" class="queue-container" aria-live="polite"></div>
-
-			<div class="action-buttons">
-				<button id="logoutBtn" onclick="logout()" class="logout-btn">
-					Cerrar sesión
-				</button>
-				<button onclick="backToRole()" class="back-btn">Volver</button>
-			</div>
+			<button
+				class="logout-btn"
+				id="logoutBtn"
+				onclick="logout()"
+				style="display: none"
+			>
+				Cerrar sesión
+			</button>
+			<button
+				class="logout-btn"
+				onclick="backToRole()"
+				style="margin-top: 10px"
+			>
+				Volver
+			</button>
 		</div>
 
 		<script src="js/script.js"></script>

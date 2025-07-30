@@ -1,150 +1,42 @@
-// Usuarios permitidos
+// Usuarios permitidos (puedes agregar más)
 const USERS = [
 	{ username: "admin", password: "1234" },
 	{ username: "valet", password: "valet2024" },
 ];
 
-// Configuración WebSocket
-const WS_URL = "ws://localhost:8080";
-let ws = null;
-let currentRole = null;
+let currentRole = null; // 'cliente' o 'parkero'
 let isParkeroLogged = false;
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
 
-// Elementos UI
-const elements = {
-	roleBox: document.getElementById("roleBox"),
-	loginBox: document.getElementById("loginBox"),
-	mainBox: document.getElementById("mainBox"),
-	notifyBox: document.getElementById("notifyBox"),
-	loginError: document.getElementById("loginError"),
-	queueBox: document.getElementById("queueBox"),
-	numberInput: document.getElementById("numberInput"),
-	addBtn: document.getElementById("addBtn"),
-	removeBtn: document.getElementById("removeBtn"),
-	instructions: document.getElementById("instructions"),
-	logoutBtn: document.getElementById("logoutBtn"),
-};
-
-// ===== WEBSOCKET FUNCTIONS =====
-function initWebSocket() {
-	ws = new WebSocket(WS_URL);
-
-	ws.onopen = () => {
-		console.log("WebSocket connected");
-		reconnectAttempts = 0;
-		hideReconnectAlert();
-	};
-
-	ws.onmessage = (event) => {
-		const data = JSON.parse(event.data);
-		handleWebSocketMessage(data);
-	};
-
-	ws.onerror = (error) => {
-		console.error("WebSocket error:", error);
-	};
-
-	ws.onclose = () => {
-		console.log("WebSocket disconnected");
-		if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-			setTimeout(initWebSocket, 3000);
-			reconnectAttempts++;
-			showReconnectAlert();
-		}
-	};
-}
-
-function handleWebSocketMessage(data) {
-	switch (data.type) {
-		case "INIT":
-		case "UPDATE":
-			renderQueue(data.queue);
-			updateClienteUI();
-			break;
-
-		case "NOTIFICATION":
-			notifyCliente(data.message);
-
-			// Limpiar el ticket del cliente si es relevante
-			if (
-				data.message.includes("Comuníquese") ||
-				data.message.includes("tiempo de espera")
-			) {
-				const myTicket = getMyTicket();
-				if (myTicket) {
-					setMyTicket(null);
-					updateClienteUI();
-				}
-			}
-			break;
-	}
-}
-
-function showReconnectAlert() {
-	const alert =
-		document.getElementById("reconnectAlert") || createReconnectAlert();
-	alert.style.display = "block";
-	alert.textContent = `Intentando reconectar... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
-}
-
-function hideReconnectAlert() {
-	const alert = document.getElementById("reconnectAlert");
-	if (alert) alert.style.display = "none";
-}
-
-function createReconnectAlert() {
-	const alert = document.createElement("div");
-	alert.id = "reconnectAlert";
-	alert.style.position = "fixed";
-	alert.style.bottom = "20px";
-	alert.style.left = "50%";
-	alert.style.transform = "translateX(-50%)";
-	alert.style.backgroundColor = "#e74c3c";
-	alert.style.color = "white";
-	alert.style.padding = "10px 20px";
-	alert.style.borderRadius = "5px";
-	alert.style.zIndex = "1000";
-	document.body.appendChild(alert);
-	return alert;
-}
-
-// ===== UI FUNCTIONS =====
 function showRole() {
-	elements.roleBox.style.display = "flex";
-	elements.loginBox.style.display = "none";
-	elements.mainBox.style.display = "none";
-	elements.notifyBox.style.display = "none";
+	document.getElementById("roleBox").style.display = "flex";
+	document.getElementById("loginBox").style.display = "none";
+	document.getElementById("mainBox").style.display = "none";
+	document.getElementById("notifyBox").style.display = "none";
 	currentRole = null;
 	isParkeroLogged = false;
 }
-
 function showLogin() {
-	elements.roleBox.style.display = "none";
-	elements.loginBox.style.display = "flex";
-	elements.mainBox.style.display = "none";
-	elements.loginError.style.display = "none";
+	document.getElementById("roleBox").style.display = "none";
+	document.getElementById("loginBox").style.display = "flex";
+	document.getElementById("mainBox").style.display = "none";
+	document.getElementById("loginError").style.display = "none";
 }
-
 function showApp() {
-	elements.roleBox.style.display = "none";
-	elements.loginBox.style.display = "none";
-	elements.mainBox.style.display = "flex";
-	elements.logoutBtn.style.display =
+	document.getElementById("roleBox").style.display = "none";
+	document.getElementById("loginBox").style.display = "none";
+	document.getElementById("mainBox").style.display = "flex";
+	document.getElementById("logoutBtn").style.display =
 		currentRole === "parkero" ? "inline-block" : "none";
 	updateClienteUI();
+	renderQueue();
 }
-
 function backToRole() {
 	showRole();
 }
-
 function logout() {
 	isParkeroLogged = false;
 	showRole();
 }
-
 function selectRole(role) {
 	currentRole = role;
 	if (role === "cliente") {
@@ -154,19 +46,52 @@ function selectRole(role) {
 	}
 }
 
+document.getElementById("loginForm").onsubmit = function (e) {
+	e.preventDefault();
+	const user = document.getElementById("username").value.trim();
+	const pass = document.getElementById("password").value;
+	const found = USERS.find((u) => u.username === user && u.password === pass);
+	if (found) {
+		isParkeroLogged = true;
+		showApp();
+	} else {
+		document.getElementById("loginError").textContent =
+			"Usuario o contraseña incorrectos";
+		document.getElementById("loginError").style.display = "block";
+	}
+};
+
+function getQueue() {
+	return JSON.parse(localStorage.getItem("valet_queue") || "[]");
+}
+function setQueue(arr) {
+	localStorage.setItem("valet_queue", JSON.stringify(arr));
+}
+
+function registrarEvento(ticket, status) {
+	// Aquí deberías hacer un fetch POST a tu backend real
+	// fetch('/api/registro', {method:'POST', body: JSON.stringify({...})})
+	// Simulación:
+	console.log("Registro enviado al servidor:", {
+		...ticket,
+		status: status,
+		fechaRegistro: new Date().toISOString(),
+	});
+}
+
 function notifyCliente(msg) {
-	elements.notifyBox.textContent = msg;
-	elements.notifyBox.style.display = "block";
+	const box = document.getElementById("notifyBox");
+	box.textContent = msg;
+	box.style.display = "block";
 	setTimeout(() => {
-		elements.notifyBox.style.display = "none";
+		box.style.display = "none";
 	}, 4000);
 }
 
-// ===== TICKET FUNCTIONS =====
+// --- Cliente: solo puede tener un ticket activo ---
 function getMyTicket() {
 	return JSON.parse(localStorage.getItem("my_valet_ticket") || "null");
 }
-
 function setMyTicket(ticket) {
 	if (ticket) {
 		localStorage.setItem("my_valet_ticket", JSON.stringify(ticket));
@@ -177,90 +102,56 @@ function setMyTicket(ticket) {
 
 function updateClienteUI() {
 	const myTicket = getMyTicket();
-
+	const inputBox = document.getElementById("inputBox");
+	const removeBtn = document.getElementById("removeBtn");
+	const instructions = document.getElementById("instructions");
 	if (currentRole === "cliente") {
 		if (myTicket) {
-			elements.inputBox.style.display = "none";
-			elements.removeBtn.style.display = "block";
-			elements.instructions.innerHTML =
-				"Tu retiro está en espera. Puedes cancelar el retiro si lo deseas.";
+			inputBox.style.display = "none";
+			removeBtn.style.display = "block";
+			instructions.innerHTML =
+				"Ya tienes un ticket en cola.<br>Puedes cancelar el retiro si lo deseas.";
 		} else {
-			elements.inputBox.style.display = "flex";
-			elements.removeBtn.style.display = "none";
-			elements.instructions.innerHTML =
-				"Introduce tu número de ticket para agregarlo a la fila.<br><b>Solo el personal autorizado puede marcar los tickets como entregados o no entregados.</b>";
+			inputBox.style.display = "flex";
+			removeBtn.style.display = "none";
+			instructions.innerHTML =
+				"Introduce tu número de ticket para agregarlo a la fila.<br><b>Solo puedes ingresar un número a la vez.</b>";
 		}
 	} else {
-		elements.inputBox.style.display = "flex";
-		elements.removeBtn.style.display = "none";
-		elements.instructions.innerHTML =
+		inputBox.style.display = "flex";
+		removeBtn.style.display = "none";
+		instructions.innerHTML =
 			"Puedes marcar los tickets como <b>Entregado</b> o <b>No entregado</b> usando los botones. El ticket se eliminará automáticamente después de 5 segundos.<br>Solo los parkeros pueden cambiar el estado.";
 	}
-}
-
-function addToQueue() {
-	if (currentRole === "cliente" && getMyTicket()) {
-		notifyCliente("Ya tienes un ticket en cola");
-		return;
-	}
-
-	const value = elements.numberInput.value.trim();
-	if (!value) return;
-
-	const ticket = {
-		number: value,
-		timestamp: new Date().toLocaleString(),
-		entregado: false,
-		noentregado: false,
-	};
-
-	if (ws && ws.readyState === WebSocket.OPEN) {
-		ws.send(
-			JSON.stringify({
-				type: "ADD_TICKET",
-				ticket: ticket,
-			})
-		);
-	}
-
-	if (currentRole === "cliente") {
-		setMyTicket(ticket);
-	}
-
-	elements.numberInput.value = "";
-	elements.numberInput.focus();
 }
 
 function removeMyTicket() {
 	const myTicket = getMyTicket();
 	if (!myTicket) return;
-
-	if (ws && ws.readyState === WebSocket.OPEN) {
-		ws.send(
-			JSON.stringify({
-				type: "REMOVE_TICKET",
-				ticket: myTicket,
-			})
-		);
-	}
-
+	let queue = getQueue();
+	queue = queue.filter(
+		(q) => !(q.number === myTicket.number && q.timestamp === myTicket.timestamp)
+	);
+	setQueue(queue);
 	setMyTicket(null);
 	updateClienteUI();
+	renderQueue();
 }
 
-function renderQueue(queue = []) {
-	elements.queueBox.innerHTML = "";
+function renderQueue() {
+	const queueBox = document.getElementById("queueBox");
+	queueBox.innerHTML = "";
+	const queue = getQueue();
 	const myTicket = getMyTicket();
 	let ticketStillActive = false;
-
 	queue.forEach((item, idx) => {
 		const div = document.createElement("div");
-		div.className = `queue-item ${item.entregado ? "entregado" : ""} ${
-			item.noentregado ? "noentregado" : ""
-		}`;
+		div.className =
+			"queue-item" +
+			(item.entregado ? " entregado" : "") +
+			(item.noentregado ? " noentregado" : "");
 		div.tabIndex = 0;
 
-		// Info del ticket
 		const infoDiv = document.createElement("div");
 		infoDiv.className = "queue-info";
 
@@ -273,6 +164,7 @@ function renderQueue(queue = []) {
 
 		infoDiv.appendChild(numberSpan);
 		infoDiv.appendChild(timestamp);
+
 		div.appendChild(infoDiv);
 
 		// Estado
@@ -287,7 +179,7 @@ function renderQueue(queue = []) {
 		}
 		div.appendChild(status);
 
-		// Acciones para parkero
+		// Acciones solo para parkero
 		if (
 			currentRole === "parkero" &&
 			isParkeroLogged &&
@@ -300,99 +192,120 @@ function renderQueue(queue = []) {
 			const btnEntregar = document.createElement("button");
 			btnEntregar.className = "entregar-btn";
 			btnEntregar.textContent = "Entregado";
-			btnEntregar.onclick = (e) => {
+			btnEntregar.onclick = function (e) {
 				e.stopPropagation();
-				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.send(
-						JSON.stringify({
-							type: "UPDATE_STATUS",
-							ticket: item,
-							status: "entregado",
-						})
+				queue[idx].entregado = true;
+				setQueue(queue);
+				renderQueue();
+				registrarEvento(queue[idx], "entregado");
+				setTimeout(() => {
+					const updatedQueue = getQueue();
+					const i = updatedQueue.findIndex(
+						(q) => q.number === item.number && q.timestamp === item.timestamp
 					);
-					registrarEvento(item, "entregado");
-				}
+					if (i !== -1 && updatedQueue[i].entregado) {
+						updatedQueue.splice(i, 1);
+						setQueue(updatedQueue);
+						renderQueue();
+					}
+				}, 5000);
 			};
+			actions.appendChild(btnEntregar);
 
 			const btnNoEntregar = document.createElement("button");
 			btnNoEntregar.className = "noentregar-btn";
 			btnNoEntregar.textContent = "No entregado";
-			btnNoEntregar.onclick = (e) => {
+			btnNoEntregar.onclick = function (e) {
 				e.stopPropagation();
-				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.send(
-						JSON.stringify({
-							type: "UPDATE_STATUS",
-							ticket: item,
-							status: "noentregado",
-						})
+				queue[idx].noentregado = true;
+				setQueue(queue);
+				renderQueue();
+				registrarEvento(queue[idx], "noentregado");
+				setTimeout(() => {
+					const updatedQueue = getQueue();
+					const i = updatedQueue.findIndex(
+						(q) => q.number === item.number && q.timestamp === item.timestamp
 					);
-					registrarEvento(item, "noentregado");
-				}
+					if (i !== -1 && updatedQueue[i].noentregado) {
+						updatedQueue.splice(i, 1);
+						setQueue(updatedQueue);
+						renderQueue();
+						notifyCliente(
+							"El tiempo de espera de tu vehículo ha expirado. Consulta con el personal."
+						);
+					}
+				}, 5000);
 			};
-
-			actions.appendChild(btnEntregar);
 			actions.appendChild(btnNoEntregar);
+
 			div.appendChild(actions);
 		}
 
-		// Verificar estado del ticket del cliente
+		// Si es cliente, verifica si su ticket sigue activo
 		if (
 			currentRole === "cliente" &&
 			myTicket &&
 			item.number === myTicket.number &&
-			item.timestamp === myTicket.timestamp
+			item.timestamp === myTicket.timestamp &&
+			!item.entregado &&
+			!item.noentregado
 		) {
-			if (item.entregado || item.noentregado) {
-				setMyTicket(null);
-				setTimeout(updateClienteUI, 100);
-			} else {
-				ticketStillActive = true;
-			}
+			ticketStillActive = true;
+		}
+		// Si el ticket fue entregado o no entregado, lo elimina del localStorage y actualiza UI
+		if (
+			currentRole === "cliente" &&
+			myTicket &&
+			item.number === myTicket.number &&
+			item.timestamp === myTicket.timestamp &&
+			(item.entregado || item.noentregado)
+		) {
+			setMyTicket(null);
+			setTimeout(updateClienteUI, 100);
 		}
 
-		elements.queueBox.appendChild(div);
+		queueBox.appendChild(div);
 	});
-
-	// Limpiar ticket si ya no está en la cola
+	// Si ya no está en la cola, limpia el ticket del cliente y actualiza UI
 	if (currentRole === "cliente" && myTicket && !ticketStillActive) {
 		setMyTicket(null);
 		setTimeout(updateClienteUI, 100);
 	}
 }
 
-function registrarEvento(ticket, status) {
-	console.log("Registro enviado al servidor:", {
-		...ticket,
-		status: status,
-		fechaRegistro: new Date().toISOString(),
-	});
+function addToQueue() {
+	if (currentRole === "cliente" && getMyTicket()) {
+		notifyCliente(
+			"Ya tienes un ticket en cola. Cancela el retiro si deseas ingresar otro."
+		);
+		return;
+	}
+	const input = document.getElementById("numberInput");
+	const value = input.value.trim();
+	if (!value) return;
+	const queue = getQueue();
+	const now = new Date();
+	const ticket = {
+		number: value,
+		timestamp: now.toLocaleString(),
+		entregado: false,
+		noentregado: false,
+	};
+	queue.push(ticket);
+	setQueue(queue);
+	if (currentRole === "cliente") setMyTicket(ticket);
+	renderQueue();
+	updateClienteUI();
+	input.value = "";
+	input.focus();
 }
+document
+	.getElementById("numberInput")
+	.addEventListener("keydown", function (event) {
+		if (event.key === "Enter") {
+			addToQueue();
+		}
+	});
 
-// ===== EVENT LISTENERS =====
-document.getElementById("loginForm").onsubmit = function (e) {
-	e.preventDefault();
-	const user = document.getElementById("username").value.trim();
-	const pass = document.getElementById("password").value;
-	const found = USERS.find((u) => u.username === user && u.password === pass);
-
-	if (found) {
-		isParkeroLogged = true;
-		showApp();
-	} else {
-		elements.loginError.textContent = "Usuario o contraseña incorrectos";
-		elements.loginError.style.display = "block";
-	}
-};
-
-elements.numberInput.addEventListener("keydown", function (event) {
-	if (event.key === "Enter") {
-		addToQueue();
-	}
-});
-
-// ===== INITIALIZATION =====
-document.addEventListener("DOMContentLoaded", () => {
-	initWebSocket();
-	showRole();
-});
+// --- Inicialización ---
+showRole();
