@@ -47,6 +47,9 @@
 			/>
 			<h2>Valet Parking</h2>
 			<div class="instructions" id="instructions"></div>
+			<div class="position-counter" id="positionCounter" style="display: none">
+				<span id="positionText"></span>
+			</div>
 			<div class="notify" id="notifyBox"></div>
 			<div class="container">
 				<div class="input-box" id="inputBox">
@@ -87,9 +90,7 @@
 		</div>
 
 		<script src="js/script.js"></script>
-		<!-- Añadir antes del cierre de </body> -->
 		<script>
-			// Inicialización segura
 			document.addEventListener("DOMContentLoaded", () => {
 				if (typeof initWebSocket === "function") {
 					initWebSocket();

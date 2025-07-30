@@ -36,6 +36,22 @@ body {
 	margin-top: 8px;
 	display: block;
 }
+.position-counter {
+	background: #111;
+	color: #fff;
+	padding: 10px 16px;
+	border-radius: 8px;
+	margin: 10px 0;
+	text-align: center;
+	font-size: 1.1rem;
+	font-weight: 600;
+	width: 100%;
+	box-sizing: border-box;
+}
+#positionText {
+	display: block;
+	text-align: center;
+}
 @media (max-width: 500px) {
 	.main-box,
 	.login-box,
@@ -49,6 +65,10 @@ body {
 	}
 	h2 {
 		font-size: 1.15rem;
+	}
+	.position-counter {
+		font-size: 0.9rem;
+		padding: 8px 12px;
 	}
 	.queue-item {
 		font-size: 0.89rem;
