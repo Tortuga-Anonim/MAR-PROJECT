@@ -16,59 +16,68 @@ wss.on("connection", (ws) => {
 	);
 
 	ws.on("message", (message) => {
-		const data = JSON.parse(message);
+		try {
+			const data = JSON.parse(message);
 
-		switch (data.type) {
-			case "ADD_TICKET":
-				const newTicket = {
-					...data.ticket,
-					timestamp: new Date().toLocaleString(),
-				};
-				queue.push(newTicket);
-				broadcastUpdate();
-				break;
-
-			case "UPDATE_STATUS":
-				const ticketIndex = queue.findIndex(
-					(t) =>
-						t.number === data.ticket.number &&
-						t.timestamp === data.ticket.timestamp
-				);
-
-				if (ticketIndex !== -1) {
-					queue[ticketIndex][data.status] = true;
-					broadcastUpdate();
-
-					// Notificación inmediata para "noentregado"
-					if (data.status === "noentregado") {
-						notifyClient(data.ticket, "Comuníquese con el personal");
-					}
-
-					// Eliminar después de 5 segundos
-					setTimeout(() => {
-						const idx = queue.findIndex(
-							(t) =>
-								t.number === data.ticket.number &&
-								t.timestamp === data.ticket.timestamp
-						);
-						if (idx !== -1 && queue[idx][data.status]) {
-							queue.splice(idx, 1);
-							broadcastUpdate();
-						}
-					}, 5000);
-				}
-				break;
-
-			case "REMOVE_TICKET":
-				queue = queue.filter(
-					(t) =>
-						!(
+			switch (data.type) {
+				case "ADD_TICKET":
+					// Evitar duplicados
+					const exists = queue.some(
+						(t) =>
 							t.number === data.ticket.number &&
 							t.timestamp === data.ticket.timestamp
-						)
-				);
-				broadcastUpdate();
-				break;
+					);
+
+					if (!exists) {
+						queue.push(data.ticket);
+						broadcastUpdate();
+					}
+					break;
+
+				case "UPDATE_STATUS":
+					const ticketIndex = queue.findIndex(
+						(t) =>
+							t.number === data.ticket.number &&
+							t.timestamp === data.ticket.timestamp
+					);
+
+					if (ticketIndex !== -1) {
+						queue[ticketIndex][data.status] = true;
+						broadcastUpdate();
+
+						// Notificación para "noentregado"
+						if (data.status === "noentregado") {
+							notifyClient(data.ticket, "Comuníquese con el personal");
+						}
+
+						// Eliminar después de 5 segundos
+						setTimeout(() => {
+							const idx = queue.findIndex(
+								(t) =>
+									t.number === data.ticket.number &&
+									t.timestamp === data.ticket.timestamp
+							);
+							if (idx !== -1 && queue[idx][data.status]) {
+								queue.splice(idx, 1);
+								broadcastUpdate();
+							}
+						}, 5000);
+					}
+					break;
+
+				case "REMOVE_TICKET":
+					queue = queue.filter(
+						(t) =>
+							!(
+								t.number === data.ticket.number &&
+								t.timestamp === data.ticket.timestamp
+							)
+					);
+					broadcastUpdate();
+					break;
+			}
+		} catch (error) {
+			console.error("Error procesando mensaje:", error);
 		}
 	});
 

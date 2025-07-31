@@ -6,6 +6,52 @@ const USERS = [
 
 let currentRole = null; // 'cliente' o 'parkero'
 let isParkeroLogged = false;
+let ws = null; // Variable para la conexión WebSocket
+let queue = []; // Cola centralizada
+
+function initWebSocket() {
+	ws = new WebSocket("ws://localhost:8080");
+
+	ws.onopen = () => {
+		console.log("Conectado al servidor WebSocket");
+	};
+
+	ws.onmessage = (event) => {
+		const data = JSON.parse(event.data);
+		switch (data.type) {
+			case "INIT":
+				queue = data.queue;
+				renderQueue();
+				updatePositionCounter();
+				break;
+			case "UPDATE":
+				queue = data.queue;
+				renderQueue();
+				updatePositionCounter();
+				break;
+			case "NOTIFICATION":
+				if (currentRole === "cliente") {
+					const myTicket = getMyTicket();
+					if (
+						myTicket &&
+						data.ticket.number === myTicket.number &&
+						data.ticket.timestamp === myTicket.timestamp
+					) {
+						notifyCliente(data.message);
+					}
+				}
+				break;
+		}
+	};
+
+	ws.onerror = (error) => {
+		console.error("Error en WebSocket:", error);
+	};
+
+	ws.onclose = () => {
+		console.log("Desconectado del servidor WebSocket");
+	};
+}
 
 function showRole() {
 	document.getElementById("roleBox").style.display = "flex";
@@ -14,6 +60,7 @@ function showRole() {
 	document.getElementById("notifyBox").style.display = "none";
 	currentRole = null;
 	isParkeroLogged = false;
+	if (ws) ws.close();
 }
 
 function showLogin() {
@@ -39,9 +86,7 @@ function updatePositionCounter() {
 	const myTicket = getMyTicket();
 
 	if (currentRole === "cliente" && myTicket) {
-		const queue = getQueue();
 		const activeTickets = queue.filter((t) => !t.entregado && !t.noentregado);
-
 		const myPosition = activeTickets.findIndex(
 			(t) => t.number === myTicket.number && t.timestamp === myTicket.timestamp
 		);
@@ -72,6 +117,7 @@ function updateClienteUI() {
 	const inputBox = document.getElementById("inputBox");
 	const removeBtn = document.getElementById("removeBtn");
 	const instructions = document.getElementById("instructions");
+
 	if (currentRole === "cliente") {
 		if (myTicket) {
 			inputBox.style.display = "none";
@@ -96,9 +142,9 @@ function updateClienteUI() {
 function renderQueue() {
 	const queueBox = document.getElementById("queueBox");
 	queueBox.innerHTML = "";
-	const queue = getQueue();
 	const myTicket = getMyTicket();
 	let ticketStillActive = false;
+
 	queue.forEach((item, idx) => {
 		const div = document.createElement("div");
 		div.className =
@@ -119,7 +165,6 @@ function renderQueue() {
 
 		infoDiv.appendChild(numberSpan);
 		infoDiv.appendChild(timestamp);
-
 		div.appendChild(infoDiv);
 
 		const status = document.createElement("span");
@@ -147,21 +192,15 @@ function renderQueue() {
 			btnEntregar.textContent = "Entregado";
 			btnEntregar.onclick = function (e) {
 				e.stopPropagation();
-				queue[idx].entregado = true;
-				setQueue(queue);
-				renderQueue();
-				registrarEvento(queue[idx], "entregado");
-				setTimeout(() => {
-					const updatedQueue = getQueue();
-					const i = updatedQueue.findIndex(
-						(q) => q.number === item.number && q.timestamp === item.timestamp
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					ws.send(
+						JSON.stringify({
+							type: "UPDATE_STATUS",
+							ticket: item,
+							status: "entregado",
+						})
 					);
-					if (i !== -1 && updatedQueue[i].entregado) {
-						updatedQueue.splice(i, 1);
-						setQueue(updatedQueue);
-						renderQueue();
-					}
-				}, 5000);
+				}
 			};
 			actions.appendChild(btnEntregar);
 
@@ -170,24 +209,15 @@ function renderQueue() {
 			btnNoEntregar.textContent = "No entregado";
 			btnNoEntregar.onclick = function (e) {
 				e.stopPropagation();
-				queue[idx].noentregado = true;
-				setQueue(queue);
-				renderQueue();
-				registrarEvento(queue[idx], "noentregado");
-				setTimeout(() => {
-					const updatedQueue = getQueue();
-					const i = updatedQueue.findIndex(
-						(q) => q.number === item.number && q.timestamp === item.timestamp
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					ws.send(
+						JSON.stringify({
+							type: "UPDATE_STATUS",
+							ticket: item,
+							status: "noentregado",
+						})
 					);
-					if (i !== -1 && updatedQueue[i].noentregado) {
-						updatedQueue.splice(i, 1);
-						setQueue(updatedQueue);
-						renderQueue();
-						notifyCliente(
-							"El tiempo de espera de tu vehículo ha expirado. Consulta con el personal."
-						);
-					}
-				}, 5000);
+				}
 			};
 			actions.appendChild(btnNoEntregar);
 
@@ -226,15 +256,20 @@ function renderQueue() {
 
 	updatePositionCounter();
 }
+
 function backToRole() {
 	showRole();
 }
+
 function logout() {
 	isParkeroLogged = false;
 	showRole();
 }
+
 function selectRole(role) {
 	currentRole = role;
+	initWebSocket(); // Iniciar WebSocket al seleccionar rol
+
 	if (role === "cliente") {
 		showApp();
 		updateClienteUI();
@@ -248,6 +283,7 @@ document.getElementById("loginForm").onsubmit = function (e) {
 	const user = document.getElementById("username").value.trim();
 	const pass = document.getElementById("password").value;
 	const found = USERS.find((u) => u.username === user && u.password === pass);
+
 	if (found) {
 		isParkeroLogged = true;
 		showApp();
@@ -258,17 +294,7 @@ document.getElementById("loginForm").onsubmit = function (e) {
 	}
 };
 
-function getQueue() {
-	return JSON.parse(localStorage.getItem("valet_queue") || "[]");
-}
-function setQueue(arr) {
-	localStorage.setItem("valet_queue", JSON.stringify(arr));
-}
-
 function registrarEvento(ticket, status) {
-	// Aquí deberías hacer un fetch POST a tu backend real
-	// fetch('/api/registro', {method:'POST', body: JSON.stringify({...})})
-	// Simulación:
 	console.log("Registro enviado al servidor:", {
 		...ticket,
 		status: status,
@@ -289,6 +315,7 @@ function notifyCliente(msg) {
 function getMyTicket() {
 	return JSON.parse(localStorage.getItem("my_valet_ticket") || "null");
 }
+
 function setMyTicket(ticket) {
 	if (ticket) {
 		localStorage.setItem("my_valet_ticket", JSON.stringify(ticket));
@@ -297,177 +324,21 @@ function setMyTicket(ticket) {
 	}
 }
 
-function updateClienteUI() {
-	const myTicket = getMyTicket();
-	const inputBox = document.getElementById("inputBox");
-	const removeBtn = document.getElementById("removeBtn");
-	const instructions = document.getElementById("instructions");
-	if (currentRole === "cliente") {
-		if (myTicket) {
-			inputBox.style.display = "none";
-			removeBtn.style.display = "block";
-			instructions.innerHTML =
-				"Ya tienes un ticket en cola.<br>Puedes cancelar el retiro si lo deseas.";
-		} else {
-			inputBox.style.display = "flex";
-			removeBtn.style.display = "none";
-			instructions.innerHTML =
-				"Introduce tu número de ticket para agregarlo a la fila.<br><b>Solo puedes ingresar un número a la vez.</b>";
-		}
-	} else {
-		inputBox.style.display = "flex";
-		removeBtn.style.display = "none";
-		instructions.innerHTML =
-			"Puedes marcar los tickets como <b>Entregado</b> o <b>No entregado</b> usando los botones. El ticket se eliminará automáticamente después de 5 segundos.<br>Solo los parkeros pueden cambiar el estado.";
-	}
-}
-
 function removeMyTicket() {
 	const myTicket = getMyTicket();
 	if (!myTicket) return;
-	let queue = getQueue();
-	queue = queue.filter(
-		(q) => !(q.number === myTicket.number && q.timestamp === myTicket.timestamp)
-	);
-	setQueue(queue);
+
+	if (ws && ws.readyState === WebSocket.OPEN) {
+		ws.send(
+			JSON.stringify({
+				type: "REMOVE_TICKET",
+				ticket: myTicket,
+			})
+		);
+	}
+
 	setMyTicket(null);
 	updateClienteUI();
-	renderQueue();
-}
-
-function renderQueue() {
-	const queueBox = document.getElementById("queueBox");
-	queueBox.innerHTML = "";
-	const queue = getQueue();
-	const myTicket = getMyTicket();
-	let ticketStillActive = false;
-	queue.forEach((item, idx) => {
-		const div = document.createElement("div");
-		div.className =
-			"queue-item" +
-			(item.entregado ? " entregado" : "") +
-			(item.noentregado ? " noentregado" : "");
-		div.tabIndex = 0;
-
-		const infoDiv = document.createElement("div");
-		infoDiv.className = "queue-info";
-
-		const numberSpan = document.createElement("span");
-		numberSpan.textContent = item.number;
-
-		const timestamp = document.createElement("span");
-		timestamp.className = "timestamp";
-		timestamp.textContent = item.timestamp;
-
-		infoDiv.appendChild(numberSpan);
-		infoDiv.appendChild(timestamp);
-
-		div.appendChild(infoDiv);
-
-		// Estado
-		const status = document.createElement("span");
-		status.className = "status-label";
-		if (item.entregado) {
-			status.textContent = "Entregado";
-		} else if (item.noentregado) {
-			status.textContent = "No entregado";
-		} else {
-			status.textContent = "Por entregar";
-		}
-		div.appendChild(status);
-
-		// Acciones solo para parkero
-		if (
-			currentRole === "parkero" &&
-			isParkeroLogged &&
-			!item.entregado &&
-			!item.noentregado
-		) {
-			const actions = document.createElement("div");
-			actions.className = "queue-actions";
-
-			const btnEntregar = document.createElement("button");
-			btnEntregar.className = "entregar-btn";
-			btnEntregar.textContent = "Entregado";
-			btnEntregar.onclick = function (e) {
-				e.stopPropagation();
-				queue[idx].entregado = true;
-				setQueue(queue);
-				renderQueue();
-				registrarEvento(queue[idx], "entregado");
-				setTimeout(() => {
-					const updatedQueue = getQueue();
-					const i = updatedQueue.findIndex(
-						(q) => q.number === item.number && q.timestamp === item.timestamp
-					);
-					if (i !== -1 && updatedQueue[i].entregado) {
-						updatedQueue.splice(i, 1);
-						setQueue(updatedQueue);
-						renderQueue();
-					}
-				}, 5000);
-			};
-			actions.appendChild(btnEntregar);
-
-			const btnNoEntregar = document.createElement("button");
-			btnNoEntregar.className = "noentregar-btn";
-			btnNoEntregar.textContent = "No entregado";
-			btnNoEntregar.onclick = function (e) {
-				e.stopPropagation();
-				queue[idx].noentregado = true;
-				setQueue(queue);
-				renderQueue();
-				registrarEvento(queue[idx], "noentregado");
-				setTimeout(() => {
-					const updatedQueue = getQueue();
-					const i = updatedQueue.findIndex(
-						(q) => q.number === item.number && q.timestamp === item.timestamp
-					);
-					if (i !== -1 && updatedQueue[i].noentregado) {
-						updatedQueue.splice(i, 1);
-						setQueue(updatedQueue);
-						renderQueue();
-						notifyCliente(
-							"El tiempo de espera de tu vehículo ha expirado. Consulta con el personal."
-						);
-					}
-				}, 5000);
-			};
-			actions.appendChild(btnNoEntregar);
-
-			div.appendChild(actions);
-		}
-
-		// Si es cliente, verifica si su ticket sigue activo
-		if (
-			currentRole === "cliente" &&
-			myTicket &&
-			item.number === myTicket.number &&
-			item.timestamp === myTicket.timestamp &&
-			!item.entregado &&
-			!item.noentregado
-		) {
-			ticketStillActive = true;
-		}
-		// Si el ticket fue entregado o no entregado, lo elimina del localStorage y actualiza UI
-		if (
-			currentRole === "cliente" &&
-			myTicket &&
-			item.number === myTicket.number &&
-			item.timestamp === myTicket.timestamp &&
-			(item.entregado || item.noentregado)
-		) {
-			setMyTicket(null);
-			setTimeout(updateClienteUI, 100);
-		}
-
-		queueBox.appendChild(div);
-	});
-	// Si ya no está en la cola, limpia el ticket del cliente y actualiza UI
-	if (currentRole === "cliente" && myTicket && !ticketStillActive) {
-		setMyTicket(null);
-		setTimeout(updateClienteUI, 100);
-	}
 }
 
 function addToQueue() {
@@ -477,10 +348,11 @@ function addToQueue() {
 		);
 		return;
 	}
+
 	const input = document.getElementById("numberInput");
 	const value = input.value.trim();
 	if (!value) return;
-	const queue = getQueue();
+
 	const now = new Date();
 	const ticket = {
 		number: value,
@@ -488,14 +360,22 @@ function addToQueue() {
 		entregado: false,
 		noentregado: false,
 	};
-	queue.push(ticket);
-	setQueue(queue);
+
+	if (ws && ws.readyState === WebSocket.OPEN) {
+		ws.send(
+			JSON.stringify({
+				type: "ADD_TICKET",
+				ticket: ticket,
+			})
+		);
+	}
+
 	if (currentRole === "cliente") setMyTicket(ticket);
-	renderQueue();
-	updateClienteUI();
+
 	input.value = "";
 	input.focus();
 }
+
 document
 	.getElementById("numberInput")
 	.addEventListener("keydown", function (event) {
