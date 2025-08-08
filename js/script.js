@@ -370,7 +370,10 @@ function addToQueue() {
 		);
 	}
 
-	if (currentRole === "cliente") setMyTicket(ticket);
+	if (currentRole === "cliente") {
+		setMyTicket(ticket);
+		updateClienteUI(); // Añadir esta línea para actualizar la UI inmediatamente
+	}
 
 	input.value = "";
 	input.focus();
