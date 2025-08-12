@@ -315,3 +315,49 @@ button:active {
 .remove-btn:active {
 	background: #721c24;
 }
+
+/* Vista de administrador */
+.historical-container {
+	width: 100%;
+	max-height: 60vh;
+	overflow-y: auto;
+	margin-top: 15px;
+}
+
+.tickets-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 10px;
+}
+
+.tickets-table th,
+.tickets-table td {
+	padding: 10px;
+	text-align: left;
+	border-bottom: 1px solid #ddd;
+}
+
+.tickets-table th {
+	background-color: #111;
+	color: white;
+	position: sticky;
+	top: 0;
+}
+
+.tickets-table tr:nth-child(even) {
+	background-color: #f2f2f2;
+}
+
+.tickets-table tr:hover {
+	background-color: #e0e0e0;
+}
+
+/* Botón de administrador */
+#adminBtn {
+	background: #2c3e50;
+	margin-top: 10px;
+}
+
+#adminBtn:active {
+	background: #1a252f;
+}

@@ -19,6 +19,7 @@
 				<button onclick="selectRole('parkero')">Parkero</button>
 			</div>
 		</div>
+
 		<div class="login-box" id="loginBox" style="display: none">
 			<img
 				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
@@ -39,6 +40,7 @@
 			</form>
 			<button class="logout-btn" onclick="backToRole()">Volver</button>
 		</div>
+
 		<div class="main-box" id="mainBox" style="display: none">
 			<img
 				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
@@ -81,6 +83,14 @@
 				Cerrar sesión
 			</button>
 			<button
+				id="adminBtn"
+				class="logout-btn"
+				onclick="showAdminView()"
+				style="display: none; background: #2c3e50"
+			>
+				Ver Registros
+			</button>
+			<button
 				class="logout-btn"
 				onclick="backToRole()"
 				style="margin-top: 10px"
@@ -89,11 +99,19 @@
 			</button>
 		</div>
 
-		<script src="js/script.js"></script>
-		<script>
-			document.addEventListener("DOMContentLoaded", () => {
-				showRole();
-			});
-		</script>
+		<div class="main-box" id="adminView" style="display: none">
+			<img
+				src="https://uploads.onecompiler.io/43rfzcgh6/43rfzcxax/imagen%20valet%20parking%202.jpg"
+				alt="Club de la Lagunita"
+				class="logo-lagunita"
+			/>
+			<h2>Registros Históricos</h2>
+			<div id="historicalTickets" class="historical-container"></div>
+			<button class="logout-btn" onclick="showApp()" style="margin-top: 20px">
+				Volver
+			</button>
+		</div>
+
+		<script type="module" src="js/script.js"></script>
 	</body>
 </html>

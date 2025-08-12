@@ -1,13 +1,21 @@
-// Usuarios permitidos (puedes agregar más)
+// Usuarios permitidos
 const USERS = [
-	{ username: "admin", password: "1234" },
-	{ username: "valet", password: "valet2024" },
+	{ username: "admin", password: "1234", isAdmin: true },
+	{ username: "valet", password: "valet2024", isAdmin: false },
 ];
 
-let currentRole = null; // 'cliente' o 'parkero'
+let currentRole = null;
 let isParkeroLogged = false;
-let ws = null; // Variable para la conexión WebSocket
-let queue = []; // Cola centralizada
+let ws = null;
+let queue = [];
+let dbService = null;
+let currentUser = null;
+
+async function initDatabaseService() {
+	const module = await import("./IDatabaseService.js");
+	const DatabaseServices = module.default;
+	dbService = new DatabaseServices();
+}
 
 function initWebSocket() {
 	ws = new WebSocket("ws://localhost:8080");
@@ -57,6 +65,7 @@ function showRole() {
 	document.getElementById("roleBox").style.display = "flex";
 	document.getElementById("loginBox").style.display = "none";
 	document.getElementById("mainBox").style.display = "none";
+	document.getElementById("adminView").style.display = "none";
 	document.getElementById("notifyBox").style.display = "none";
 	currentRole = null;
 	isParkeroLogged = false;
@@ -67,6 +76,7 @@ function showLogin() {
 	document.getElementById("roleBox").style.display = "none";
 	document.getElementById("loginBox").style.display = "flex";
 	document.getElementById("mainBox").style.display = "none";
+	document.getElementById("adminView").style.display = "none";
 	document.getElementById("loginError").style.display = "none";
 }
 
@@ -74,10 +84,73 @@ function showApp() {
 	document.getElementById("roleBox").style.display = "none";
 	document.getElementById("loginBox").style.display = "none";
 	document.getElementById("mainBox").style.display = "flex";
+	document.getElementById("adminView").style.display = "none";
+	document.getElementById("adminBtn").style.display = "none";
 	document.getElementById("logoutBtn").style.display =
 		currentRole === "parkero" ? "inline-block" : "none";
+
+	if (isParkeroLogged && currentUser && currentUser.isAdmin) {
+		document.getElementById("adminBtn").style.display = "block";
+	}
+
 	updateClienteUI();
 	renderQueue();
+}
+
+async function showAdminView() {
+	document.getElementById("mainBox").style.display = "none";
+	document.getElementById("adminView").style.display = "flex";
+
+	try {
+		const tickets = await dbService.getHistoricalTickets();
+		renderHistoricalTickets(tickets);
+	} catch (error) {
+		console.error("Error loading tickets:", error);
+		notifyCliente("Error cargando registros históricos");
+	}
+}
+
+function renderHistoricalTickets(tickets) {
+	const container = document.getElementById("historicalTickets");
+	container.innerHTML = "";
+
+	if (tickets.length === 0) {
+		container.innerHTML = "<p>No hay tickets registrados</p>";
+		return;
+	}
+
+	const table = document.createElement("table");
+	table.className = "tickets-table";
+
+	table.innerHTML = `
+    <tr>
+      <th>Ticket</th>
+      <th>Fecha</th>
+      <th>Estado</th>
+    </tr>
+  `;
+
+	tickets.forEach((ticket) => {
+		const row = document.createElement("tr");
+		const fecha = ticket.fecha.toLocaleString("es-ES", {
+			day: "numeric",
+			month: "long",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+			timeZoneName: "short",
+		});
+
+		row.innerHTML = `
+      <td>${ticket.number}</td>
+      <td>${fecha}</td>
+      <td>${ticket.status}</td>
+    `;
+
+		table.appendChild(row);
+	});
+
+	container.appendChild(table);
 }
 
 function updatePositionCounter() {
@@ -200,6 +273,11 @@ function renderQueue() {
 							status: "entregado",
 						})
 					);
+
+					// Actualizar en Firestore
+					if (dbService) {
+						dbService.editData("tickets", item.id, { status: "entregado" });
+					}
 				}
 			};
 			actions.appendChild(btnEntregar);
@@ -217,6 +295,11 @@ function renderQueue() {
 							status: "noentregado",
 						})
 					);
+
+					// Actualizar en Firestore
+					if (dbService) {
+						dbService.editData("tickets", item.id, { status: "noentregado" });
+					}
 				}
 			};
 			actions.appendChild(btnNoEntregar);
@@ -268,7 +351,7 @@ function logout() {
 
 function selectRole(role) {
 	currentRole = role;
-	initWebSocket(); // Iniciar WebSocket al seleccionar rol
+	initWebSocket();
 
 	if (role === "cliente") {
 		showApp();
@@ -286,6 +369,7 @@ document.getElementById("loginForm").onsubmit = function (e) {
 
 	if (found) {
 		isParkeroLogged = true;
+		currentUser = found;
 		showApp();
 	} else {
 		document.getElementById("loginError").textContent =
@@ -293,14 +377,6 @@ document.getElementById("loginForm").onsubmit = function (e) {
 		document.getElementById("loginError").style.display = "block";
 	}
 };
-
-function registrarEvento(ticket, status) {
-	console.log("Registro enviado al servidor:", {
-		...ticket,
-		status: status,
-		fechaRegistro: new Date().toISOString(),
-	});
-}
 
 function notifyCliente(msg) {
 	const box = document.getElementById("notifyBox");
@@ -311,7 +387,6 @@ function notifyCliente(msg) {
 	}, 4000);
 }
 
-// --- Cliente: solo puede tener un ticket activo ---
 function getMyTicket() {
 	return JSON.parse(localStorage.getItem("my_valet_ticket") || "null");
 }
@@ -341,7 +416,7 @@ function removeMyTicket() {
 	updateClienteUI();
 }
 
-function addToQueue() {
+async function addToQueue() {
 	if (currentRole === "cliente" && getMyTicket()) {
 		notifyCliente(
 			"Ya tienes un ticket en cola. Cancela el retiro si deseas ingresar otro."
@@ -370,9 +445,23 @@ function addToQueue() {
 		);
 	}
 
+	// Guardar en Firestore
+	if (dbService) {
+		try {
+			const docId = await dbService.createData("tickets", {
+				number: value,
+				status: "pendiente",
+				fecha: new Date(),
+			});
+			ticket.id = docId; // Guardar el ID para futuras actualizaciones
+		} catch (error) {
+			console.error("Error saving to Firestore:", error);
+		}
+	}
+
 	if (currentRole === "cliente") {
 		setMyTicket(ticket);
-		updateClienteUI(); // Añadir esta línea para actualizar la UI inmediatamente
+		updateClienteUI();
 	}
 
 	input.value = "";
@@ -387,5 +476,8 @@ document
 		}
 	});
 
-// --- Inicialización ---
-showRole();
+// Inicialización
+document.addEventListener("DOMContentLoaded", async () => {
+	showRole();
+	await initDatabaseService();
+});
