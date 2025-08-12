@@ -112,6 +112,11 @@
 			</button>
 		</div>
 
-		<script type="module" src="js/script.js"></script>
+		<!-- Scripts en orden correcto -->
+		<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+		<script src="js/firebaseconfig.js"></script>
+		<script src="js/IDatabaseService.js"></script>
+		<script src="js/script.js"></script>
 	</body>
 </html>

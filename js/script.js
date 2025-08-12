@@ -4,19 +4,14 @@ const USERS = [
 	{ username: "valet", password: "valet2024", isAdmin: false },
 ];
 
+// Variables globales
 let currentRole = null;
 let isParkeroLogged = false;
 let ws = null;
 let queue = [];
-let dbService = null;
 let currentUser = null;
 
-async function initDatabaseService() {
-	const module = await import("./IDatabaseService.js");
-	const DatabaseServices = module.default;
-	dbService = new DatabaseServices();
-}
-
+// ================== FUNCIONES WEBSOCKET ==================
 function initWebSocket() {
 	ws = new WebSocket("ws://localhost:8080");
 
@@ -61,6 +56,7 @@ function initWebSocket() {
 	};
 }
 
+// ================== FUNCIONES DE INTERFAZ ==================
 function showRole() {
 	document.getElementById("roleBox").style.display = "flex";
 	document.getElementById("loginBox").style.display = "none";
@@ -275,7 +271,7 @@ function renderQueue() {
 					);
 
 					// Actualizar en Firestore
-					if (dbService) {
+					if (item.id && dbService) {
 						dbService.editData("tickets", item.id, { status: "entregado" });
 					}
 				}
@@ -297,7 +293,7 @@ function renderQueue() {
 					);
 
 					// Actualizar en Firestore
-					if (dbService) {
+					if (item.id && dbService) {
 						dbService.editData("tickets", item.id, { status: "noentregado" });
 					}
 				}
@@ -361,32 +357,7 @@ function selectRole(role) {
 	}
 }
 
-document.getElementById("loginForm").onsubmit = function (e) {
-	e.preventDefault();
-	const user = document.getElementById("username").value.trim();
-	const pass = document.getElementById("password").value;
-	const found = USERS.find((u) => u.username === user && u.password === pass);
-
-	if (found) {
-		isParkeroLogged = true;
-		currentUser = found;
-		showApp();
-	} else {
-		document.getElementById("loginError").textContent =
-			"Usuario o contraseña incorrectos";
-		document.getElementById("loginError").style.display = "block";
-	}
-};
-
-function notifyCliente(msg) {
-	const box = document.getElementById("notifyBox");
-	box.textContent = msg;
-	box.style.display = "block";
-	setTimeout(() => {
-		box.style.display = "none";
-	}, 4000);
-}
-
+// ================== MANEJO DE TICKETS ==================
 function getMyTicket() {
 	return JSON.parse(localStorage.getItem("my_valet_ticket") || "null");
 }
@@ -468,6 +439,24 @@ async function addToQueue() {
 	input.focus();
 }
 
+// ================== EVENT LISTENERS ==================
+document.getElementById("loginForm").onsubmit = function (e) {
+	e.preventDefault();
+	const user = document.getElementById("username").value.trim();
+	const pass = document.getElementById("password").value;
+	const found = USERS.find((u) => u.username === user && u.password === pass);
+
+	if (found) {
+		isParkeroLogged = true;
+		currentUser = found;
+		showApp();
+	} else {
+		document.getElementById("loginError").textContent =
+			"Usuario o contraseña incorrectos";
+		document.getElementById("loginError").style.display = "block";
+	}
+};
+
 document
 	.getElementById("numberInput")
 	.addEventListener("keydown", function (event) {
@@ -476,8 +465,16 @@ document
 		}
 	});
 
-// Inicialización
-document.addEventListener("DOMContentLoaded", async () => {
+function notifyCliente(msg) {
+	const box = document.getElementById("notifyBox");
+	box.textContent = msg;
+	box.style.display = "block";
+	setTimeout(() => {
+		box.style.display = "none";
+	}, 4000);
+}
+
+// ================== INICIALIZACIÓN ==================
+document.addEventListener("DOMContentLoaded", () => {
 	showRole();
-	await initDatabaseService();
 });

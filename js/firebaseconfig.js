@@ -1,6 +1,4 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-
+// Configuración de Firebase
 const firebaseConfig = {
 	apiKey: "AIzaSyBuTdSd1YyBhy9xqhx7w2QEA4-Ef_z2WVE",
 	authDomain: "valet-parking-754ee.firebaseapp.com",
@@ -11,7 +9,6 @@ const firebaseConfig = {
 	measurementId: "G-J47VFZ5E94",
 };
 
-const app = initializeApp(firebaseConfig);
-const database = getFirestore(app);
-
-export { database };
+// Inicializar Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.firestore(app);
