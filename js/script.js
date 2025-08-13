@@ -13,7 +13,7 @@ let currentUser = null;
 
 // ================== FUNCIONES WEBSOCKET ==================
 function initWebSocket() {
-	ws = new WebSocket("ws://localhost:8080");
+	const WS_URL = "ws://localhost:8080";
 
 
 	ws.onopen = () => {
