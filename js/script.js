@@ -13,7 +13,7 @@ let currentUser = null;
 
 // ================== FUNCIONES WEBSOCKET ==================
 function initWebSocket() {
-	const WS_URL = "https://ade4.netlify.app/";
+	const WS_URL = "ws://localhost:8080";
 
 
 	ws.onopen = () => {
