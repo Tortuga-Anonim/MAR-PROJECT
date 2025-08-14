@@ -7,53 +7,34 @@ const USERS = [
 // Variables globales
 let currentRole = null;
 let isParkeroLogged = false;
-let ws = null;
 let queue = [];
 let currentUser = null;
+let unsubscribeTickets = null;
 
-// ================== FUNCIONES WEBSOCKET ==================
-function initWebSocket() {
-	ws = new WebSocket("ws://localhost:8080");
+// ================== FUNCIONES DE TIEMPO REAL ==================
+function initRealtimeListener() {
+	unsubscribeTickets = dbService.consultData("tickets", (tickets) => {
+		queue = tickets;
+		renderQueue();
+		updatePositionCounter();
 
-	ws.onopen = () => {
-		console.log("Conectado al servidor WebSocket");
-	};
-
-	ws.onmessage = (event) => {
-		const data = JSON.parse(event.data);
-		switch (data.type) {
-			case "INIT":
-				queue = data.queue;
-				renderQueue();
-				updatePositionCounter();
-				break;
-			case "UPDATE":
-				queue = data.queue;
-				renderQueue();
-				updatePositionCounter();
-				break;
-			case "NOTIFICATION":
-				if (currentRole === "cliente") {
-					const myTicket = getMyTicket();
-					if (
-						myTicket &&
-						data.ticket.number === myTicket.number &&
-						data.ticket.timestamp === myTicket.timestamp
-					) {
-						notifyCliente(data.message);
-					}
+		if (currentRole === "cliente") {
+			const myTicket = getMyTicket();
+			if (myTicket) {
+				const currentTicket = queue.find((t) => t.id === myTicket.id);
+				if (currentTicket && currentTicket.status === "noentregado") {
+					notifyCliente("Comuníquese con el personal");
 				}
-				break;
+			}
 		}
-	};
+	});
+}
 
-	ws.onerror = (error) => {
-		console.error("Error en WebSocket:", error);
-	};
-
-	ws.onclose = () => {
-		console.log("Desconectado del servidor WebSocket");
-	};
+function stopRealtimeListener() {
+	if (unsubscribeTickets) {
+		unsubscribeTickets();
+		unsubscribeTickets = null;
+	}
 }
 
 // ================== FUNCIONES DE INTERFAZ ==================
@@ -65,7 +46,7 @@ function showRole() {
 	document.getElementById("notifyBox").style.display = "none";
 	currentRole = null;
 	isParkeroLogged = false;
-	if (ws) ws.close();
+	stopRealtimeListener();
 }
 
 function showLogin() {
@@ -154,11 +135,10 @@ function updatePositionCounter() {
 	const positionText = document.getElementById("positionText");
 	const myTicket = getMyTicket();
 
+	const activeTickets = queue.filter((t) => t.status === "pendiente");
+
 	if (currentRole === "cliente" && myTicket) {
-		const activeTickets = queue.filter((t) => !t.entregado && !t.noentregado);
-		const myPosition = activeTickets.findIndex(
-			(t) => t.number === myTicket.number && t.timestamp === myTicket.timestamp
-		);
+		const myPosition = activeTickets.findIndex((t) => t.id === myTicket.id);
 
 		if (myPosition !== -1) {
 			const position = myPosition + 1;
@@ -203,7 +183,7 @@ function updateClienteUI() {
 		inputBox.style.display = "flex";
 		removeBtn.style.display = "none";
 		instructions.innerHTML =
-			"Puedes marcar los tickets como <b>Entregado</b> o <b>No entregado</b> usando los botones. El ticket se eliminará automáticamente después de 5 segundos.<br>Solo los parkeros pueden cambiar el estado.";
+			"Puedes marcar los tickets como <b>Entregado</b> o <b>No entregado</b> usando los botones.<br>Solo los parkeros pueden cambiar el estado.";
 	}
 	updatePositionCounter();
 }
@@ -214,13 +194,17 @@ function renderQueue() {
 	const myTicket = getMyTicket();
 	let ticketStillActive = false;
 
-	queue.forEach((item, idx) => {
+	// Filtrar solo tickets pendientes
+	const activeTickets = queue.filter((t) => t.status === "pendiente");
+
+	// Ordenar por fecha de creación (más antiguos primero)
+	const sortedQueue = [...activeTickets].sort(
+		(a, b) => a.createdAt - b.createdAt
+	);
+
+	sortedQueue.forEach((item) => {
 		const div = document.createElement("div");
-		div.className =
-			"queue-item" +
-			(item.entregado ? " entregado" : "") +
-			(item.noentregado ? " noentregado" : "");
-		div.tabIndex = 0;
+		div.className = "queue-item";
 
 		const infoDiv = document.createElement("div");
 		infoDiv.className = "queue-info";
@@ -230,7 +214,8 @@ function renderQueue() {
 
 		const timestamp = document.createElement("span");
 		timestamp.className = "timestamp";
-		timestamp.textContent = item.timestamp;
+		timestamp.textContent =
+			item.timestamp || new Date(item.createdAt).toLocaleString();
 
 		infoDiv.appendChild(numberSpan);
 		infoDiv.appendChild(timestamp);
@@ -238,21 +223,10 @@ function renderQueue() {
 
 		const status = document.createElement("span");
 		status.className = "status-label";
-		if (item.entregado) {
-			status.textContent = "Entregado";
-		} else if (item.noentregado) {
-			status.textContent = "No entregado";
-		} else {
-			status.textContent = "Por entregar";
-		}
+		status.textContent = "Por entregar";
 		div.appendChild(status);
 
-		if (
-			currentRole === "parkero" &&
-			isParkeroLogged &&
-			!item.entregado &&
-			!item.noentregado
-		) {
+		if (currentRole === "parkero" && isParkeroLogged) {
 			const actions = document.createElement("div");
 			actions.className = "queue-actions";
 
@@ -261,20 +235,7 @@ function renderQueue() {
 			btnEntregar.textContent = "Entregado";
 			btnEntregar.onclick = function (e) {
 				e.stopPropagation();
-				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.send(
-						JSON.stringify({
-							type: "UPDATE_STATUS",
-							ticket: item,
-							status: "entregado",
-						})
-					);
-
-					// Actualizar en Firestore
-					if (item.id && dbService) {
-						dbService.editData("tickets", item.id, { status: "entregado" });
-					}
-				}
+				updateTicketStatus(item, "entregado");
 			};
 			actions.appendChild(btnEntregar);
 
@@ -283,46 +244,15 @@ function renderQueue() {
 			btnNoEntregar.textContent = "No entregado";
 			btnNoEntregar.onclick = function (e) {
 				e.stopPropagation();
-				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.send(
-						JSON.stringify({
-							type: "UPDATE_STATUS",
-							ticket: item,
-							status: "noentregado",
-						})
-					);
-
-					// Actualizar en Firestore
-					if (item.id && dbService) {
-						dbService.editData("tickets", item.id, { status: "noentregado" });
-					}
-				}
+				updateTicketStatus(item, "noentregado");
 			};
 			actions.appendChild(btnNoEntregar);
 
 			div.appendChild(actions);
 		}
 
-		if (
-			currentRole === "cliente" &&
-			myTicket &&
-			item.number === myTicket.number &&
-			item.timestamp === myTicket.timestamp &&
-			!item.entregado &&
-			!item.noentregado
-		) {
+		if (currentRole === "cliente" && myTicket && item.id === myTicket.id) {
 			ticketStillActive = true;
-		}
-
-		if (
-			currentRole === "cliente" &&
-			myTicket &&
-			item.number === myTicket.number &&
-			item.timestamp === myTicket.timestamp &&
-			(item.entregado || item.noentregado)
-		) {
-			setMyTicket(null);
-			setTimeout(updateClienteUI, 100);
 		}
 
 		queueBox.appendChild(div);
@@ -347,7 +277,11 @@ function logout() {
 
 function selectRole(role) {
 	currentRole = role;
-	initWebSocket();
+	stopRealtimeListener();
+
+	if (role === "cliente" || isParkeroLogged) {
+		initRealtimeListener();
+	}
 
 	if (role === "cliente") {
 		showApp();
@@ -370,21 +304,18 @@ function setMyTicket(ticket) {
 	}
 }
 
-function removeMyTicket() {
+async function removeMyTicket() {
 	const myTicket = getMyTicket();
-	if (!myTicket) return;
+	if (!myTicket || !myTicket.id) return;
 
-	if (ws && ws.readyState === WebSocket.OPEN) {
-		ws.send(
-			JSON.stringify({
-				type: "REMOVE_TICKET",
-				ticket: myTicket,
-			})
-		);
+	try {
+		await dbService.deleteData("tickets", myTicket.id);
+		setMyTicket(null);
+		updateClienteUI();
+	} catch (error) {
+		console.error("Error eliminando ticket:", error);
+		notifyCliente("Error al cancelar ticket");
 	}
-
-	setMyTicket(null);
-	updateClienteUI();
 }
 
 async function addToQueue() {
@@ -399,44 +330,43 @@ async function addToQueue() {
 	const value = input.value.trim();
 	if (!value) return;
 
-	const now = new Date();
-	const ticket = {
-		number: value,
-		timestamp: now.toLocaleString(),
-		entregado: false,
-		noentregado: false,
-	};
+	try {
+		const now = new Date();
+		const docId = await dbService.createData("tickets", {
+			number: value,
+			status: "pendiente",
+		});
 
-	if (ws && ws.readyState === WebSocket.OPEN) {
-		ws.send(
-			JSON.stringify({
-				type: "ADD_TICKET",
-				ticket: ticket,
-			})
-		);
-	}
+		const ticket = {
+			id: docId,
+			number: value,
+			status: "pendiente",
+			timestamp: now.toLocaleString(),
+			createdAt: now.getTime(),
+		};
 
-	// Guardar en Firestore
-	if (dbService) {
-		try {
-			const docId = await dbService.createData("tickets", {
-				number: value,
-				status: "pendiente",
-				fecha: new Date(),
-			});
-			ticket.id = docId; // Guardar el ID para futuras actualizaciones
-		} catch (error) {
-			console.error("Error saving to Firestore:", error);
+		if (currentRole === "cliente") {
+			setMyTicket(ticket);
+			updateClienteUI();
 		}
-	}
-
-	if (currentRole === "cliente") {
-		setMyTicket(ticket);
-		updateClienteUI();
+	} catch (error) {
+		console.error("Error guardando ticket:", error);
+		notifyCliente("Error al agregar ticket");
 	}
 
 	input.value = "";
 	input.focus();
+}
+
+async function updateTicketStatus(item, status) {
+	try {
+		await dbService.editData("tickets", item.id, {
+			status: status,
+			updatedAt: new Date().getTime(),
+		});
+	} catch (error) {
+		console.error("Error actualizando estado:", error);
+	}
 }
 
 // ================== EVENT LISTENERS ==================
@@ -449,6 +379,7 @@ document.getElementById("loginForm").onsubmit = function (e) {
 	if (found) {
 		isParkeroLogged = true;
 		currentUser = found;
+		initRealtimeListener();
 		showApp();
 	} else {
 		document.getElementById("loginError").textContent =

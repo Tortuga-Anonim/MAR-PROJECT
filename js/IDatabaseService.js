@@ -1,7 +1,15 @@
 class DatabaseServices {
 	async createData(collectionName, struct) {
 		try {
-			const docRef = await database.collection(collectionName).add(struct);
+			const now = new Date();
+			const docRef = await database.collection(collectionName).add({
+				...struct,
+				fecha: firebase.firestore.FieldValue.serverTimestamp(),
+				createdAt: now.getTime(),
+				visibleEnCola: true,
+				status: "pendiente",
+				timestamp: now.toLocaleString(),
+			});
 			return docRef.id;
 		} catch (error) {
 			console.error("Error adding document: ", error);
@@ -10,16 +18,22 @@ class DatabaseServices {
 	}
 
 	consultData(collectionName, callback) {
-		return database.collection(collectionName).onSnapshot((querySnapshot) => {
-			const listData = [];
-			querySnapshot.forEach((doc) => {
-				listData.push({
-					id: doc.id,
-					...doc.data(),
+		return database
+			.collection(collectionName)
+			.where("status", "==", "pendiente") // Solo mostrar pendientes
+			.onSnapshot((querySnapshot) => {
+				const listData = [];
+				querySnapshot.forEach((doc) => {
+					const data = doc.data();
+					listData.push({
+						id: doc.id,
+						...data,
+						fecha: data.fecha?.toDate(),
+						timestamp: data.timestamp || data.fecha?.toDate().toLocaleString(),
+					});
 				});
+				callback(listData);
 			});
-			callback(listData);
-		});
 	}
 
 	async getHistoricalTickets() {
@@ -29,11 +43,15 @@ class DatabaseServices {
 				.orderBy("fecha", "desc")
 				.get();
 
-			return querySnapshot.docs.map((doc) => ({
-				id: doc.id,
-				...doc.data(),
-				fecha: doc.data().fecha.toDate(),
-			}));
+			return querySnapshot.docs.map((doc) => {
+				const data = doc.data();
+				return {
+					id: doc.id,
+					...data,
+					fecha: data.fecha.toDate(),
+					timestamp: data.timestamp || data.fecha.toDate().toLocaleString(),
+				};
+			});
 		} catch (error) {
 			console.error("Error getting tickets:", error);
 			return [];
@@ -42,7 +60,13 @@ class DatabaseServices {
 
 	async editData(collectionName, id, updateData) {
 		try {
-			await database.collection(collectionName).doc(id).update(updateData);
+			await database
+				.collection(collectionName)
+				.doc(id)
+				.update({
+					...updateData,
+					updatedAt: new Date().getTime(),
+				});
 		} catch (error) {
 			console.error("Error updating document: ", error);
 		}
