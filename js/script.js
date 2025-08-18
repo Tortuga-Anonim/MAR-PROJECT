@@ -1,6 +1,6 @@
 // Usuarios permitidos
 const USERS = [
-	{ username: "admin", password: "1234", isAdmin: true },
+	{ username: "admin", password: "8756", isAdmin: true },
 	{ username: "valet", password: "valet2024", isAdmin: false },
 ];
 
@@ -22,7 +22,7 @@ function initRealtimeListener() {
 			const myTicket = getMyTicket();
 			if (myTicket) {
 				const currentTicket = queue.find((t) => t.id === myTicket.id);
-				if (currentTicket && currentTicket.status === "noentregado") {
+				if (currentTicket && currentTicket.status === "no entregado") {
 					notifyCliente("Comuníquese con el personal");
 				}
 			}
