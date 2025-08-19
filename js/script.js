@@ -100,12 +100,13 @@ function renderHistoricalTickets(tickets) {
 	table.className = "tickets-table";
 
 	table.innerHTML = `
-    <tr>
-      <th>Ticket</th>
-      <th>Fecha</th>
-      <th>Estado</th>
-    </tr>
-  `;
+        <tr>
+            <th>Ticket</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    `;
 
 	tickets.forEach((ticket) => {
 		const row = document.createElement("tr");
@@ -119,15 +120,41 @@ function renderHistoricalTickets(tickets) {
 		});
 
 		row.innerHTML = `
-      <td>${ticket.number}</td>
-      <td>${fecha}</td>
-      <td>${ticket.status}</td>
-    `;
+            <td>${ticket.number}</td>
+            <td>${fecha}</td>
+            <td>${ticket.status}</td>
+            <td><button class="delete-btn" data-id="${ticket.id}">Eliminar</button></td>
+        `;
 
 		table.appendChild(row);
 	});
 
+	// Agregar event listeners a los botones de eliminar
+	table.querySelectorAll(".delete-btn").forEach((button) => {
+		button.addEventListener("click", function () {
+			const ticketId = this.getAttribute("data-id");
+			deleteHistoricalTicket(ticketId);
+		});
+	});
+
 	container.appendChild(table);
+}
+
+async function deleteHistoricalTicket(ticketId) {
+	if (!confirm("¿Estás seguro de eliminar este ticket permanentemente?")) {
+		return;
+	}
+
+	try {
+		await dbService.deleteData("tickets", ticketId);
+		// Recargar la vista después de eliminar
+		const tickets = await dbService.getHistoricalTickets();
+		renderHistoricalTickets(tickets);
+		notifyCliente("Ticket eliminado correctamente");
+	} catch (error) {
+		console.error("Error eliminando ticket histórico:", error);
+		notifyCliente("Error al eliminar ticket");
+	}
 }
 
 function updatePositionCounter() {
