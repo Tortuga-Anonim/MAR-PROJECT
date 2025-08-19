@@ -36,11 +36,12 @@ class DatabaseServices {
 			});
 	}
 
-	async getHistoricalTickets() {
+	async getHistoricalTickets(limit = 100) {
 		try {
 			const querySnapshot = await database
 				.collection("tickets")
 				.orderBy("fecha", "desc")
+				.limit(limit)
 				.get();
 
 			return querySnapshot.docs.map((doc) => {

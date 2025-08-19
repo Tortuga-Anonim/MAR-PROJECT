@@ -396,6 +396,30 @@ async function updateTicketStatus(item, status) {
 	}
 }
 
+async function clearOldTickets() {
+	if (!currentUser?.isAdmin) return;
+
+	if (
+		confirm("¿Borrar TODOS los tickets históricos? Esto no se puede deshacer.")
+	) {
+		try {
+			// 1. Obtener todos los tickets
+			const tickets = await dbService.getHistoricalTickets();
+
+			// 2. Borrar uno por uno (límite gratuito de Firestore)
+			for (const ticket of tickets) {
+				await dbService.deleteData("tickets", ticket.id);
+			}
+
+			notifyCliente(`Se borraron ${tickets.length} tickets`);
+			renderHistoricalTickets([]); // Limpiar la tabla
+		} catch (error) {
+			console.error("Error borrando tickets:", error);
+			notifyCliente("Error al borrar tickets");
+		}
+	}
+}
+
 // ================== EVENT LISTENERS ==================
 document.getElementById("loginForm").onsubmit = function (e) {
 	e.preventDefault();
